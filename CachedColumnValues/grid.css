@@ -1,0 +1,26 @@
+.float-masonry {
+    display: block;
+}
+
+.mason-element {
+    background-color: gold;
+    font-size: 50px;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+
+.mason-element {
+    display: inline-block;
+    width: 30%;
+    margin: 15px;
+    float: left;
+}
+
+.image-text {
+    height: 148px;
+}
+
+.text-only {
+    height: 348px;
+}
