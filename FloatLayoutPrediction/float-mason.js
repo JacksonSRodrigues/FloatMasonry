@@ -1,24 +1,25 @@
 document.addEventListener("DOMContentLoaded", function(event){
 
+    var self = this;
     // Stores the refrence columns for the elements to match and find the column index.
     var columnRefences = [];
 
     // Stores the height/filled in each column.
-    var renderedColumnHeights = [0,0,0,0];
+    var renderedColumnHeights = [];
 
     // column height of the right most item in the column, 
     // which becomes the refence to find the next/future column to place the element.
     var refrenceLine = 0;
 
     // retunrs the total number of Available column at a time.
-    var columnCount = 1;
+    var columnCount = 3;
 
     var getStyle = function(name) {
         var style = document.createElement('style');
         style.id = name;
         style.type = 'text/css';
         style.appendChild(document.createTextNode(""));
-        injectStyle(style);
+        //injectStyle(style);
         return style;
     };
 
@@ -31,12 +32,15 @@ document.addEventListener("DOMContentLoaded", function(event){
     }
 
     function addCSSRule(sheet, selector, rules, index) {
-        if ("insertRule" in sheet) {
+       /* if ("insertRule" in sheet) {
             sheet.insertRule(selector + "{" + rules + "}", index);
         }
         else if ("addRule" in sheet) {
             sheet.addRule(selector, rules, index);
         }
+        */
+        sheet.styles += selector + '{' + rules + '}';
+        sheet.styles += "\n";
     }
 
     // Returns the projected column of the element.
@@ -68,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function(event){
     }
 
     var updateRefernceLine = function(column, value) {
-        if (column == (columnCount-1)) {
+        if (column == (columnCount-1) && refrenceLine < value) {
             refrenceLine = value;
         }
     }
@@ -81,24 +85,16 @@ document.addEventListener("DOMContentLoaded", function(event){
         var refLine = getRefrenceLine();
         var currentIndexHeight = getFilledColumnHeight(index);
         var nextIndexHeight = getFilledColumnHeight(index+1);
-        if ( (index < (columnCount-1)) && ( currentIndexHeight > refLine ) && ( refLine >= nextIndexHeight ) ) {
-            console.log("Can fill right");
-            console.log("--> Current Line "+getRefrenceLine()+" >= "+getFilledColumnHeight(index+1) );
+        if ( (index < (columnCount-1)) && ( (nextIndexHeight == undefined) || ( ( currentIndexHeight > refLine ) && (currentIndexHeight>nextIndexHeight) && ( nextIndexHeight <= refLine ) ) ) ) {
             return true;
         }
-        console.log("Can't fill right");
-        console.log("--> Current Line "+getRefrenceLine()+" >= "+getFilledColumnHeight(index+1) );
         return false;
     };
 
     var canFillToLeft = function(index,callback) {
         if ( (index > 0) && ( getRefrenceLine() >= getFilledColumnHeight(index-1) ) ) {
-            console.log("Can fill left");
-            console.log("--> Current Line "+getRefrenceLine()+" >= "+getFilledColumnHeight(index-1) );
             return true;
         }
-        console.log("Can't' fill left");
-        console.log("--> Current Line "+getRefrenceLine()+" >= "+getFilledColumnHeight(index-1) );
         return false;
     };
 
@@ -131,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function(event){
         if (index < renderedColumnHeights.length) {
             return renderedColumnHeights[index];
         }
-        return 0;
+        return undefined;
     };
 
     var setFilledColumHeight = function(index, value) {
@@ -139,43 +135,112 @@ document.addEventListener("DOMContentLoaded", function(event){
     };
 
     var appendMasonStyleForElement = function (element, index, lastRenderedColumn ,stylesheet) {
-        console.log("----------------------------");
-        console.log("EL: "+element.innerHTML);
         var columnIndex = predictColumnForElement(element, lastRenderedColumn);
-        console.log("column: "+columnIndex);
         var filledHeight = getFilledColumnHeight(columnIndex);
+        
 
         var elementRect = element.getBoundingClientRect();
+        var nextFilledHeight = elementRect.height;
+        var refLine = getRefrenceLine();
 
-        var elementStyle = window.getComputedStyle(element);
-        var verticalDelta = (filledHeight - elementRect.top);
-        var marginTopParsed = elementStyle['margin-top'] || elementStyle['marginTop'];
-        var marginTop = parseFloat(marginTopParsed);
+        if (filledHeight != undefined) { // if undefined then its the first column.
+            var predictedPosition = filledHeight;
 
-        var masonElementSelector = '.float-masonry .mason-element:nth-child(' + index + ')';
-        var rules = 'margin-top:' + (verticalDelta + 3 * marginTop) + 'px;'
-        addCSSRule(stylesheet, masonElementSelector, rules);
-        var filledHeight = elementRect.bottom + (verticalDelta + 2 * marginTop);
-        setFilledColumHeight(columnIndex, filledHeight);
-        updateRefernceLine(columnIndex, filledHeight);
+            if(predictedPosition < refLine) {
+                predictedPosition = refLine;
+            }
+
+            var elementStyle = window.getComputedStyle(element);
+            var verticalDelta = (filledHeight - predictedPosition);
+            var marginTopParsed = elementStyle['margin-top'] || elementStyle['marginTop'];
+            var marginTop = parseFloat(marginTopParsed);
+
+            if (verticalDelta != 0) {
+
+                var masonElementSelector = '.float-masonry .mason-element:nth-child(' + index + ')';
+                var rules = 'margin-top:' + verticalDelta + 'px;'
+                addCSSRule(stylesheet, masonElementSelector, rules);
+            }
+
+            nextFilledHeight = filledHeight + elementRect.height + marginTop;
+        }
+
+        setFilledColumHeight(columnIndex, nextFilledHeight);
+        updateRefernceLine(columnIndex, nextFilledHeight);
 
         return columnIndex;
     };
 
 
     var generateMasonStyle = function(container) {
+        var styleSheet = {styles:''};
         var sheetName = "float_mason_style_sheet";
         var style = getStyle(sheetName);
         var masonElements = container.children;
         var lastRenderdColumn = undefined;
          for (var i = 0; i < masonElements.length; i++ ) {
-             lastRenderdColumn = appendMasonStyleForElement(masonElements[i], (i+1), lastRenderdColumn, style.sheet);
+             lastRenderdColumn = appendMasonStyleForElement(masonElements[i], (i+1), lastRenderdColumn, styleSheet);
          }
+        style.innerHTML = styleSheet.styles;
         injectStyle(style);
     }
 
-    var masonContainer = document.getElementsByClassName('float-masonry')[0];
-    generateMasonStyle(masonContainer);
+    
+    var template = `<div class="mason-element">    
+                        <div class="card">
+                            <div class="media-container">
+                                <img class="banner" src="">
+                            </div>
+                            <div class="text-container">
+                                <h1 class="title"></h1>
+                                <hr class="title-line">
+                                <p class="description"></p>
+                            </div>
+                        </div>
+                    </div>`;
+   var dataColumns = jsonData.data;
+
+   var partialHTMLForItem = function(item, index) {
+       
+       var templateDiv = document.createElement('div');
+       templateDiv.innerHTML = template;
+
+       var mediaContainer = templateDiv.getElementsByClassName('media-container')[0];
+       var imageBanner = templateDiv.getElementsByClassName('banner')[0];
+
+       var title = templateDiv.getElementsByClassName('title')[0];
+       var description = templateDiv.getElementsByClassName('description')[0];
+
+       if (item.media != undefined && item.media.url != undefined) {
+           imageBanner.src = item.media.url;
+       }
+       else {
+           mediaContainer.classList += " hidden";
+       }
+
+       title.innerHTML = item.title;
+       description.innerHTML = item.description;
+
+       return templateDiv.innerHTML;
+   }
+
+   var loadContents = function(container) {
+       var partials = "";
+       for (var i = 0 ; i < 100 ; i++) {
+           var item = dataColumns[i%12];
+           partials += partialHTMLForItem(item,i);
+       }
+
+       container.innerHTML = partials;
+   }
+
+
+   var masonContainer = document.getElementsByClassName('float-masonry')[0];
+   loadContents(masonContainer);
+
+   var timer = setTimeout(function(){
+       generateMasonStyle(masonContainer);
+   },10000);
 
 
 

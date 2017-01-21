@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function(event){
             //             el-----------er
             // Instead of checking if elements overlaps,
             // we will make sure it doesnt overlap which has only two possiblities as above
-            if ( (siblingRect.right < elementRect.left) || elementRect.right < siblingRect.left) {
+            if ( (siblingRect.right <= elementRect.left) || elementRect.right <= siblingRect.left) {
                 // if doenst overlap, check the next element.
                 visaullyTopElement = visuallyAboveSibling(element,siblingElement);
             }
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function(event){
             var marginTop = parseFloat(marginTopParsed);
 
             var masonElementSelector = '.float-masonry .mason-element:nth-child('+index+')';
-            var rules = 'margin-top:'+(verticalDelta + 3*marginTop)+'px;'
+            var rules = 'margin-top:'+(verticalDelta)+'px;'
             addCSSRule(stylesheet,masonElementSelector,rules);
         }
 
@@ -101,9 +101,64 @@ document.addEventListener("DOMContentLoaded", function(event){
         injectStyle(style);
     }
 
-    var masonContainer = document.getElementsByClassName('float-masonry')[0];
-    generateMasonStyle(masonContainer);
 
 
+    var template = `<div class="mason-element">    
+                        <div class="card">
+                            <div class="media-container">
+                                <img class="banner" src="">
+                            </div>
+                            <div class="text-container">
+                                <h1 class="title"></h1>
+                                <hr class="title-line">
+                                <p class="description"></p>
+                            </div>
+                        </div>
+                    </div>`;
+   var dataColumns = jsonData.data;
+
+   var partialHTMLForItem = function(item, index) {
+       
+       var templateDiv = document.createElement('div');
+       templateDiv.innerHTML = template;
+
+       var mediaContainer = templateDiv.getElementsByClassName('media-container')[0];
+       var imageBanner = templateDiv.getElementsByClassName('banner')[0];
+
+       var title = templateDiv.getElementsByClassName('title')[0];
+       var description = templateDiv.getElementsByClassName('description')[0];
+
+       if (item.media != undefined && item.media.url != undefined) {
+           imageBanner.src = item.media.url;
+       }
+       else {
+           mediaContainer.classList += " hidden";
+       }
+
+       title.innerHTML = item.title;
+       description.innerHTML = item.description;
+
+       return templateDiv.innerHTML;
+   }
+
+   var loadContents = function(container) {
+       var partials = "";
+       for (var i = 0 ; i < 100; i++) {
+           var item = dataColumns[i%12];
+           partials += partialHTMLForItem(item,i);
+       }
+
+       container.innerHTML = partials;
+   }
+
+
+
+
+   var masonContainer = document.getElementsByClassName('float-masonry')[0];
+   loadContents(masonContainer);
+
+   var timer = setTimeout(function(){
+       generateMasonStyle(masonContainer);
+   },10000);
 
 });

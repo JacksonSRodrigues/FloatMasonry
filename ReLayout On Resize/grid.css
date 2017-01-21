@@ -1,3 +1,9 @@
+.col1, .col2, .col3 {
+    width: 33%;
+    display: inline-block;
+    float: left;
+}
+
 
 .float-masonry {
     display: block;
@@ -11,7 +17,7 @@
 
 .mason-element {
     display: inline-block;
-    width: 28%;
+    width: 100%;
     padding: 5px;
     float: left;
     background: #FFE;
