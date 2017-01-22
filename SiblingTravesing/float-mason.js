@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", function(event){
 
    var loadContents = function(container) {
        var partials = "";
-       for (var i = 0 ; i < 100; i++) {
+       for (var i = 0 ; i < 100 ; i++) {
            var item = dataColumns[i%12];
            partials += partialHTMLForItem(item,i);
        }
